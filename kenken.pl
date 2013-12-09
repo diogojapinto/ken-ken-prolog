@@ -16,11 +16,13 @@ cell(FieldID, Value).
 field(FieldID, Op, FinalValue).
 
 solveBoard(Size, Board) :- /*length(Board, Size),*/
-						   initBoard(Size, Board),
+						   /*initBoard(Size, Board),*/
+						   testBoard(Board),
+						   testFields(Fields),
 						   imposeDomainConstrain(Board, Size),
 						   imposeRowConstrain(Board),
 						   imposeColumnConstrain(Board),
-						   
+						   imposeFieldConstrain(Board, Fields),
 						   labeling([], Board),
 						   printBoard(Board).
 
@@ -63,7 +65,7 @@ imposeDomainConstraintInRow([R | Rs], SupLim) :- cell(_, Value),
 										 		 imposeDomainConstraintInRow(Rs, SupLim).
 
 imposeRowConstrain([]).
-imposeRowConstrain([B | Bs]) :- imposeRowConstrain(B, []]),
+imposeRowConstrain([B | Bs]) :- imposeRowConstrain(B, []),
 								imposeRowConstrain(Bs).
 
 imposeRowConstrain([], List) :- all_distinct(List).
@@ -73,3 +75,7 @@ imposeRowConstrain([R | Rs], List) :- cell(_, Value) = R,
 
 imposeColumnConstrain(Board) :- transpose(Board, TBoard),
 								imposeRowConstrain(TBoard).
+
+imposeFieldConstrain(_, []).
+imposeFieldConstrain(Board, [F | Fs]) :- imposeFieldConstrain(Board, Fs),
+										 .
