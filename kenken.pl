@@ -85,27 +85,34 @@ imposeColumnConstrain(Board) :- transpose(Board, TBoard),
  *
  *********************************************************************************************/
 /*, printBoardLine(Board), printBottomBorder(Board)*/
-printBoard :- testBoardPrint(Board)/*, printTopBorder(Board)*/, printBoardLine(Board)/*, printBottomBorder(Board)*/.
+printBoard :- testBoardPrint(Board),/* printTopBorder(Board),*/ printBoardLine(Board)/*, printBottomBorder(Board)*/.
 
 printTopBorder(Board) :- length(Board, Size), printTopBorder(Board, Size).
 
 printTopBorder(Board, 0):-  write('\n').
 printTopBorder(Board, Size) :- write('_'), Size1 is Size - 1, printTopBorder(Board, Size1).
 
-printBoardLine(Board) :- length(Board, Size), printBoardLine(Board, Size, Size+1).
 
-printBoardLine(Board, Size, Line) :- write('OLA'), Size = Line + 1, write('|'), Line1 is Line - 1/*, printBoardLine(Board, Size, Line1)*/.
 
-printBoardLine(_,_,0) :- write('|').
-printBoardLine([B | BS], Size, LineIt) :- ColIt is Size, printCell(B, ColIt), LineIt1 is LineIt - 1, printBoardLine(Bs, Size, LineIt1).
+printBoardLine(Board) :- length(Board, Size), printBoardLine(Board, Size, Size).
 
-printCell(_, 0) :- write('||').
+printBoardLine(_,_,0).
+
+/*printBoardLine(Board, Size, Line) :- Size = Line - 1, write('|'), Line1 is Line - 1, printBoardLine(Board, Size, Line1).*/
+
+printBoardLine([B | BS], Size, LineIt) :- ColIt is Size, printCell(B, ColIt), LineIt1 is LineIt - 1, write('\n'), printBoardLine(Bs, Size, LineIt1).
+
+
+
+printCell([C1], 1) :- cell(_, Value1) = C1, write(Value1), write('|').
 
 printCell([C1, C2 | Cs], ColIt) :- cell(FieldID1, Value1) = C1, cell(FieldID2, Value2) = C2, 
-									FieldID1 = FieldID2, write('|'), write(Value1), ColIt1 is ColIt - 1, printCell([C2 | Cs], ColIt1).
+									FieldID1 = FieldID2, write(Value1), write('|'), ColIt1 is ColIt - 1, printCell([C2 | Cs], ColIt1).
 
 printCell([C1, C2 | Cs], ColIt) :- cell(_, Value1) = C1, cell(_, Value2) = C2, 
-									write('||'), write(Value1), ColIt1 is ColIt - 1, printCell([C2 | Cs], ColIt1).
+									write(Value1), write('||'), ColIt1 is ColIt - 1, printCell([C2 | Cs], ColIt1).
+
+
 
 printBottomBorder(Board) :- length(Board, Size), printBottomBorder(Board, Size).
 
