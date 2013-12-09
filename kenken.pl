@@ -15,13 +15,14 @@ testFields([field(1, '-', 1),
 cell(FieldID, Value).
 field(FieldID, Op, FinalValue).
 
-solveBoard(Size, Board) :- length(Board, Size),
+solveBoard(Size, Board) :- /*length(Board, Size),*/
 						   initBoard(Size, Board),
 						   imposeDomainConstrain(Board, Size),
 						   imposeRowConstrain(Board),
 						   imposeColumnConstrain(Board),
-
-						   .
+						   
+						   labeling([], Board),
+						   printBoard(Board).
 
 
 
