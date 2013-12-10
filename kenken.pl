@@ -125,14 +125,21 @@ printRow([C1 | Cs]) :- cell(_, Value1) = C1,
 					   write('║'), 
 					   printRow(Cs).
 
-printBottomBorder(Board) :- length(Board, Size), printHorizBorder(Size), printBottomNumbers(Size).
+printBottomBorder(Board) :- length(Board, Size), 
+							printHorizBorder(Size), printBottomNumbers(Size).
 
 printHorizBorder(0):-  write('\n').
 
-printHorizBorder(Size) :- write('═══'), Size1 is Size - 1, printHorizBorder(Size1).
+printHorizBorder(Size) :- write('═══'), 
+						  Size1 is Size - 1, 
+						  printHorizBorder(Size1).
 
 printBottomNumbers(Size) :- printBottomNumbers(Size, 1).
 
 printBottomNumbers(Size, Size) :- write(Size).
 
-printBottomNumbers(Size, Number) :- write(' '), write(Number), write(' '), Number1 is Number + 1, printBottomNumbers(Size, Number1).
+printBottomNumbers(Size, Number) :- write(' '), 
+									write(Number), 
+									write(' '), 
+									Number1 is Number + 1, 
+									printBottomNumbers(Size, Number1).
