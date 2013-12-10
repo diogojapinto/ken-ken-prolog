@@ -1,4 +1,5 @@
 ﻿:- use_module(library(clpfd)).
+:- use_module(library(lists)).
 
 testBoard([[cell(1, _), cell(2, _), cell(2, _), cell(3, _)],
 		   [cell(1, _), cell(4, _), cell(5, _), cell(3, _)],
@@ -26,11 +27,13 @@ solveBoard(Size, Board) :- /*length(Board, Size),*/
 						   /*initBoard(Size, Board),*/
 						   testBoard(Board),
 						   testFields(Fields),
+						   length(Board, Size),
 						   imposeDomainConstrain(Board, Size),
 						   imposeRowConstrain(Board),
 						   imposeColumnConstrain(Board),
 						   imposeFieldConstrain(Board, Fields),
-						   labeling([], Board),
+						   getValsList(Board, List),
+						   labeling([], List),
 						   printBoard(Board).
 
 
@@ -47,14 +50,24 @@ initBoard(Size, [B | Bs]) :- length(B, Size),
 							 initBoard(Size, Bs).
 
 getFieldCells(_, [], []).
-getFieldCells(FieldID, [B | Bs], RetList) :- getFieldCellsInRow(FieldID, B, RetList), 
-											 getFieldCells(FieldID, Bs, RetList).
+getFieldCells(FieldID, [B | Bs], RetList) :- getFieldCellsInRow(FieldID, B, RetList1), 
+											 getFieldCells(FieldID, Bs, RetList2),
+											 append(RetList1, RetList2, RetList).
 
 getFieldCellsInRow(FieldID, [], []).
-getFieldCellsInRow(FieldID, [R | Rs], RetList) :- cell(FieldID, _), append([R], RetList, RetList), 
-												  getFieldCellsInRow(FieldID, Rs, RetList).
+getFieldCellsInRow(FieldID, [R | Rs], RetList) :- cell(FieldID, Val) = R, 
+												  getFieldCellsInRow(FieldID, Rs, RetList1),
+												  append([Val], RetList1, RetList).
+
 getFieldCellsInRow(FieldID, [R | Rs], RetList) :- getFieldCellsInRow(FieldID, Rs, RetList).
 
+getValsList([B | Bs], L) :- getValsListInRow(B, L1),
+							getValsList(Bs, L2),
+							append(L1, L2, L).
+
+getValsListInRow([], []).
+getValsListInRow([R | Rs], L) :- getValsListInRow(Rs, L1),
+								 append([R], L1, L).
 
 
 /*********************************************************************************************
@@ -63,13 +76,14 @@ getFieldCellsInRow(FieldID, [R | Rs], RetList) :- getFieldCellsInRow(FieldID, Rs
  *
  *********************************************************************************************/
 
-imposeDomainConstraint([], _).
-imposeDomainConstraint([B | Bs], SupLim) :- imposeDomainConstraintInRow(B, SupLim),
-											imposeDomainConstraint(Bs, SupLim).
+imposeDomainConstrain([], _).
+imposeDomainConstrain([B | Bs], SupLim) :- imposeDomainConstrainInRow(B, SupLim),
+										   imposeDomainConstrain(Bs, SupLim).
 
-imposeDomainConstraintInRow([R | Rs], SupLim) :- cell(_, Value),
-												 domain(Value, 1, SupLim),
-										 		 imposeDomainConstraintInRow(Rs, SupLim).
+imposeDomainConstrainInRow([], _).
+imposeDomainConstrainInRow([R | Rs], SupLim) :- cell(_, Value) = R,
+												Value in 1..SupLim,
+										 		imposeDomainConstrainInRow(Rs, SupLim).
 
 imposeRowConstrain([]).
 imposeRowConstrain([B | Bs]) :- imposeRowConstrain(B, []),
@@ -91,16 +105,36 @@ imposeFieldConstrain(Board, [F | Fs]) :- field(FID, Op, Res),
 
 applyOpConstrain(L, '+', Res) :- sum(L, #=, Res).
 
+applyOpConstrain([], '-', _).
+
+applyOpConstrain(L, '-', Res) :- maximum(L, Max),
+								 minimum(L, Min),
+								 Res #= Max - Min.
+
+applyOpConstrain([], '*', Acum, Res) :- Acum #= Res.
+
+applyOpConstrain([L | Ls], '*', Res) :- applyOpConstrain(Ls, '*', L, Res).
+
+applyOpConstrain([L | Ls], '*', Acum, Res) :- Acum1 = L * Acum,
+											  applyOpConstrain(Ls, '*', Acum1, Res).
+
+applyOpConstrain([], '/', Res).
+applyOpConstrain(L, '/', Res) :- maximum(L, Max),
+								 minimum(L, Min),
+								 Res #= Max / Min.
+
 /*********************************************************************************************
  *
  * Print
  *
  *********************************************************************************************/
 
-printBoard :- testBoardPrint(Board), 
-			  printTopBorder(Board), 
-			  printBoard(Board), 
-			  printBottomBorder(Board).
+printBoard :- testBoardPrint(Board),
+			  printBoard(Board).
+
+printBoard(Board) :- printTopBorder(Board), 
+			  		 printBoard(Board), 
+			  		 printBottomBorder(Board).
 
 printTopBorder(Board) :- length(Board, Size), 
 						 printHorizBorder(Size).
