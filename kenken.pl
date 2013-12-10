@@ -153,6 +153,7 @@ printBottomNumbers(Size, Size) :- printNumber(Size).
 
 printBottomNumbers(Size, Number) :- printNumber(Number), write(' '), Number1 is Number + 1, printBottomNumbers(Size, Number1).
 
+
 printHorizMidBorder([R1], [R2]) :- cell(FieldID1, _) = R1, 
 								   cell(FieldID2, _) = R2, 
 								   FieldID1 = FieldID2, 
