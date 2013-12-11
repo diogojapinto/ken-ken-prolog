@@ -23,20 +23,23 @@ testFields([field(1, '-', 1),
 cell(_FieldID, _Value).
 field(_FieldID, _Op, _FinalValue).
 
-solveBoard(Size, Board) :- /*length(Board, Size),*/
-						   /*initBoard(Size, Board),*/
-						   testBoard(Board),
-						   testFields(Fields),
-						   length(Board, Size),
-						   imposeDomainConstrain(Board, Size),
-						   imposeRowConstrain(Board),
-						   imposeColumnConstrain(Board),
-						   imposeFieldConstrain(Board, Fields),
-						   getValsList(Board, List),
-						   labeling([], List),
-						   printBoard(Board).
+solveBoard :- /*length(Board, Size),*/
+			  /*initBoard(Size, Board),*/
+			  testBoard(Board),
+			  testFields(Fields),
+			  length(Board, Size),
+			  imposeDomainConstrain(Board, Size),
+			  imposeRowConstrain(Board),
+			  imposeColumnConstrain(Board),
+			  imposeFieldConstrain(Board, Fields),
+			  getValsList(Board, List),
+			  labeling([], List),
+			  printBoard(Board).
 
-
+/*
+createBoard :- length(Board, Size),
+			  initBoard(Size, Board)....
+ */
 
 
 /*********************************************************************************************
@@ -55,19 +58,19 @@ getFieldCells(FieldID, [B | Bs], RetList) :- getFieldCellsInRow(FieldID, B, RetL
 											 append(RetList1, RetList2, RetList).
 
 getFieldCellsInRow(_FieldID, [], []).
-getFieldCellsInRow(FieldID, [R | Rs], RetList) :- cell(FieldID, Val) = R, 
-												  getFieldCellsInRow(FieldID, Rs, RetList1),
-												  append([Val], RetList1, RetList).
+getFieldCellsInRow(FieldID, [cell(FieldID, Val) | Rs], RetList) :- getFieldCellsInRow(FieldID, Rs, RetList1),
+												  				   append([Val], RetList1, RetList).
 
 getFieldCellsInRow(FieldID, [_R | Rs], RetList) :- getFieldCellsInRow(FieldID, Rs, RetList).
 
+getValsList([], []).
 getValsList([B | Bs], L) :- getValsListInRow(B, L1),
 							getValsList(Bs, L2),
 							append(L1, L2, L).
 
 getValsListInRow([], []).
-getValsListInRow([R | Rs], L) :- getValsListInRow(Rs, L1),
-								 append([R], L1, L).
+getValsListInRow([cell(_, Val) | Rs], L) :- getValsListInRow(Rs, L1),
+								 			append([Val], L1, L).
 
 
 /*********************************************************************************************
@@ -81,47 +84,49 @@ imposeDomainConstrain([B | Bs], SupLim) :- imposeDomainConstrainInRow(B, SupLim)
 										   imposeDomainConstrain(Bs, SupLim).
 
 imposeDomainConstrainInRow([], _).
-imposeDomainConstrainInRow([R | Rs], SupLim) :- cell(_, Value) = R,
-												Value in 1..SupLim,
-										 		imposeDomainConstrainInRow(Rs, SupLim).
+imposeDomainConstrainInRow([cell(_, Value) | Rs], SupLim) :- Value in 1..SupLim,
+										 					 imposeDomainConstrainInRow(Rs, SupLim).
 
 imposeRowConstrain([]).
 imposeRowConstrain([B | Bs]) :- imposeRowConstrain(B, []),
 								imposeRowConstrain(Bs).
 
 imposeRowConstrain([], List) :- all_distinct(List).
-imposeRowConstrain([R | Rs], List) :- cell(_, Value) = R,
-									  append([Value], List, NewList),
-									  imposeRowConstrain(Rs, NewList).
+
+imposeRowConstrain([cell(_, Value) | Rs], List) :- append([Value], List, NewList),
+									  			   imposeRowConstrain(Rs, NewList).
 
 imposeColumnConstrain(Board) :- transpose(Board, TBoard),
 								imposeRowConstrain(TBoard).
 
-imposeFieldConstrain(_, []).
-imposeFieldConstrain(Board, [F | Fs]) :- field(FID, Op, Res),
-										 getFieldCells(FID, Board, L),
-										 applyOpConstrain(L, Op, Res),
-										 imposeFieldConstrain(Board, Fs).
+imposeFieldConstrain(_Board, []).
+imposeFieldConstrain(Board, [field(FID, Op, Res) | Fs]) :- getFieldCells(FID, Board, L),
+										 				   applyOpConstrain(L, Op, Res),
+										 				   imposeFieldConstrain(Board, Fs).
+
+applyOpConstrain([], _Op, _Res) :- fail.
 
 applyOpConstrain(L, '+', Res) :- sum(L, #=, Res).
 
-applyOpConstrain([], '-', _).
-
-applyOpConstrain(L, '-', Res) :- maximum(L, Max),
-								 minimum(L, Min),
+applyOpConstrain(L, '-', Res) :- L = [_, _],
+								 maximum(Max, L),
+								 minimum(Min, L),
 								 Res #= Max - Min.
 
-applyOpConstrain([], '*', Acum, Res) :- Acum #= Res.
+applyOpConstrain(L, '/', Res) :- L = [_, _],
+								 maximum(Max, L),
+								 minimum(Min, L),
+								 Res #= Max / Min.
 
 applyOpConstrain([L | Ls], '*', Res) :- applyOpConstrain(Ls, '*', L, Res).
 
-applyOpConstrain([L | Ls], '*', Acum, Res) :- Acum1 = L * Acum,
+applyOpConstrain([], '*', Acum, Res) :- Acum #= Res.
+
+applyOpConstrain([L | Ls], '*', Acum, Res) :- Acum1 #= L * Acum,
 											  applyOpConstrain(Ls, '*', Acum1, Res).
 
-applyOpConstrain([], '/', _Res).
-applyOpConstrain(L, '/', Res) :- maximum(L, Max),
-								 minimum(L, Min),
-								 Res #= Max / Min.
+applyOpConstrain([L], '=', Res) :- L #= Res.
+
 
 /*********************************************************************************************
  *
@@ -149,7 +154,7 @@ printBoard([B1, B2 | Bs], Size, RowIt) :- printNumber(RowIt), write('║'),
 									 RowIt1 is RowIt + 1,
 									 printBoard([B2 | Bs], Size, RowIt1).
 
-printBoard([B1 | BS], Size, RowIt) :- printNumber(RowIt), write('║'), 
+printBoard([B1 | Bs], Size, RowIt) :- printNumber(RowIt), write('║'), 
 									 printRow(B1),
 									 RowIt1 is RowIt + 1,
 									 printBoard(Bs, Size, RowIt1).
@@ -159,7 +164,7 @@ printRow([C1]) :- cell(_, Value1) = C1,
 				  write('║\n').
 
 printRow([C1, C2 | Cs]) :- cell(FieldID1, Value1) = C1, 
-						   cell(FieldID2, Value2) = C2, 
+						   cell(FieldID2, _Value2) = C2, 
 						   FieldID1 = FieldID2, 
 						   printNumber(Value1),
 						   write('|'), 
@@ -192,7 +197,7 @@ printHorizMidBorder([R1], [R2]) :- cell(FieldID1, _) = R1,
 								   FieldID1 = FieldID2, 
 								   write('───║\n'). 
 
-printHorizMidBorder([R1], [R2]) :- write('═══║\n').
+printHorizMidBorder([_R1], [_R2]) :- write('═══║\n').
 
 printHorizMidBorder([R1 | R1s], [R2 | R2s]) :- cell(FieldID1, _) = R1, 
 											   cell(FieldID2, _) = R2, 
@@ -200,7 +205,7 @@ printHorizMidBorder([R1 | R1s], [R2 | R2s]) :- cell(FieldID1, _) = R1,
 											   write('───═'), 
 											   printHorizMidBorder(R1s, R2s). 
 
-printHorizMidBorder([R1 | R1s], [R2 | R2s]) :- write('════'), printHorizMidBorder(R1s, R2s).
+printHorizMidBorder([_R1 | R1s], [_R2 | R2s]) :- write('════'), printHorizMidBorder(R1s, R2s).
 
 printNumber(Number) :- Number > 99, write(Number).
 printNumber(Number) :- Number > 9, write(' '), write(Number).
