@@ -39,7 +39,9 @@ solveBoard :- testBoard2(Board),
 			  imposeFieldConstrain(Board, Fields),
 			  getValsList(Board, List),
 			  labeling([], List),
-			  printBoard(Board).
+			  printBoard(Board),
+			  write('\n\n'),
+			  printFieldTable(Board, Fields). 
 
 
 createBoard(Size) :- length(Board, Size),
@@ -236,3 +238,24 @@ printHorizMidBorder([_R1 | R1s], [_R2 | R2s]) :- write('════'), printHor
 printNumber(Number) :- Number > 99, write(Number).
 printNumber(Number) :- Number > 9, write(' '), write(Number).
 printNumber(Number) :- write(' '), write(Number), write(' ').
+
+printFieldTable(_, []).
+printFieldTable(Board, [F | Fs]) :- RowIt = 1, printFieldTableAux(Board, F, RowIt), printFieldTable(Board, Fs).
+
+
+printFieldTableAux([], _, _).
+printFieldTableAux([B | Bs], F, RowIt) :- ColIt = 1, findFieldInCell(B, F, ColIt, Col), field(FID, Op, Val) = F, 
+										  printField(FID, Op, Val, RowIt, Col).
+
+printFieldTableAux([B | Bs], F, RowIt) :- RowIt1 is RowIt + 1, printFieldTableAux(Bs, F, RowIt1).
+
+findFieldInCell([], _, _, _) :- fail.
+findFieldInCell([cell(FID, _) | Bs], field(FID, _, _), ColIt, ColIt).
+findFieldInCell([B | Bs], F, ColIt, Col) :- ColIt1 is ColIt + 1, findFieldInCell(Bs, F, ColIt1, Col).
+
+printField(FID, Op, Val, Row, Col) :- write('Field: '), write(FID), write(' '), 
+									  write('Operation: '), write(Op), write(' '),
+									  write('Result: '), write(Val), write(' '),
+									  write('Row: '), write(Row), write(' '),
+									  write('Column: '), write(Col), write(' '),
+									  write('\n').
