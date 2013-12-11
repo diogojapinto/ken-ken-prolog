@@ -1,5 +1,6 @@
 ﻿:- use_module(library(clpfd)).
 :- use_module(library(lists)).
+:- use_module(library(random)).
 
 testBoard([[cell(1, _), cell(2, _), cell(2, _), cell(3, _)],
 		   [cell(1, _), cell(4, _), cell(5, _), cell(3, _)],
@@ -20,13 +21,17 @@ testFields([field(1, '-', 1),
 			field(7, '+', 7),
 			field(8, '=', 2)]).
 
+% for testing the domain constrains
+testBoard2([[cell(1, _), cell(1, _)],
+			[cell(1, _), cell(1, _)]]).
+
+testFields2([field(1, +, 6)]).
+
 cell(_FieldID, _Value).
 field(_FieldID, _Op, _FinalValue).
 
-solveBoard :- /*length(Board, Size),*/
-			  /*initBoard(Size, Board),*/
-			  testBoard(Board),
-			  testFields(Fields),
+solveBoard :- testBoard2(Board),
+			  testFields2(Fields),
 			  length(Board, Size),
 			  imposeDomainConstrain(Board, Size),
 			  imposeRowConstrain(Board),
@@ -36,21 +41,42 @@ solveBoard :- /*length(Board, Size),*/
 			  labeling([], List),
 			  printBoard(Board).
 
-/*
-createBoard :- length(Board, Size),
-			  initBoard(Size, Board)....
- */
+
+createBoard(Size) :- length(Board, Size),
+			   		 initBoard(Size, Board),
+			   		 imposeDomainConstrain(Board, Size),
+			   		 imposeRowConstrain(Board),
+			   		 imposeColumnConstrain(Board),
+			   		 generateRandomVals(Board).
 
 
 /*********************************************************************************************
  *
- * Initialization
+ * Generations
  *
  *********************************************************************************************/
 
 initBoard(_Size, []).
 initBoard(Size, [B | Bs]) :- length(B, Size),
+							 initBoardRow(B),
 							 initBoard(Size, Bs).
+
+initBoardRow([]).
+initBoardRow([cell(_FieldID, Val) | Rs]) :- initBoardRow(Rs).
+
+fillRandomBoard(Board, Size) :- getValsList(Board, L), 
+								random(1, 100, X),
+								genBoard(L, X).
+
+genBoard(L, X) :- labeling([], L), fail.
+
+
+
+/*********************************************************************************************
+ *
+ * Getters
+ *
+ *********************************************************************************************/
 
 getFieldCells(_, [], []).
 getFieldCells(FieldID, [B | Bs], RetList) :- getFieldCellsInRow(FieldID, B, RetList1), 
