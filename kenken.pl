@@ -1,6 +1,7 @@
 ﻿:- use_module(library(clpfd)).
 :- use_module(library(lists)).
 :- use_module(library(random)).
+:- use_module(library(between)).
 
 testBoard([[cell(1, _), cell(2, _), cell(2, _), cell(3, _)],
 		   [cell(1, _), cell(4, _), cell(5, _), cell(3, _)],
@@ -49,7 +50,9 @@ createBoard(Size) :- length(Board, Size),
 			   		 imposeDomainConstrain(Board, Size),
 			   		 imposeRowConstrain(Board),
 			   		 imposeColumnConstrain(Board),
-			   		 generateRandomVals(Board).
+			   		 generateRandomVals(Board, Size),
+			   		 generateFields(Board, Fields),
+			   		 printBoard(Board).
 
 
 /*********************************************************************************************
@@ -66,11 +69,93 @@ initBoard(Size, [B | Bs]) :- length(B, Size),
 initBoardRow([]).
 initBoardRow([cell(_FieldID, Val) | Rs]) :- initBoardRow(Rs).
 
-fillRandomBoard(Board, Size) :- getValsList(Board, L), 
-								random(1, 100, X),
-								genBoard(L, X).
+generateRandomVals(Board, Size) :- getValsList(Board, L), 
+								   Sqrt is Size * Size,
+								   random(Size, Sqrt, X),
+								   retractall(size(_)),
+								   asserta(size(X)),
+								   genBoard(L).
 
-genBoard(L, X) :- labeling([], L), fail.
+genBoard(L) :- labeling([], L), size(X), X1 is X - 1, asserta(size(X1)), X1 = 0.
+
+not(X) :- X, !, fail.
+not(X).
+
+generateFields(Board, Fields) :- generateFields(Board, Fields, 1).
+
+generateFields(Board, [F | Fs], FieldIt) :- not(isBoardFilled(Board)),
+								 			iterBoard(Board, F, FieldIt),
+								 			FieldIt1 is FieldIt + 1,
+								 			generateFields(Board, Fs, FieldIt1).
+
+generateFields(_Board, [], _FieldIt).
+
+isBoardFilled([]).
+isBoardFilled([B | Bs]) :- isBoardFilledIterRow(B),
+						   isBoardFilled(Bs).
+
+isBoardFilledIterRow([cell(FID, _) | Rs]) :- nonvar(FID),
+											 isBoardFilledIterRow(Rs).
+
+iterBoard(Board, F, FieldIt) :- field(FieldIt, Res) = F,
+								random(1, 5, OpIt),
+								length(Board, BoardSize),
+								initField(OpIt, F, FieldIt, BoardSize, FieldSize),
+								getFstAvailCell(Board, Row, Col),
+								getCell(Board, Row, Col, cell(_FieldID, Val)),
+								random(1, 2, X),
+								getNextCellPos(X, Row, Col, NewRow, NewCol),
+								makeField(Board, Row, Col, F, FieldSize, Val).
+
+initField(1, field(FieldIt, '+'), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
+initField(2, field(FieldIt, '-'), BoardSize, FieldIt, 2).
+initField(3, field(FieldIt, '*'), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
+initField(4, field(FieldIt, '/'), BoardSize, FieldIt, 2).
+initField(5, field(FieldIt, '='), BoardSize, FieldIt, 1).
+
+makeField(Board, Row, Col, 1, field(FieldIt, Op, NewAcum), FieldSize, Acum) :- getCell(Board, Row, Col, cell(FieldID, Val)),
+																			   getNewAcum(Acum, Op, Val, NewAcum).
+																		   
+makeField(Board, Row, Col, field(FieldIt, Op, Res), FieldSize, Acum) :- getCell(Board, Row, Col, cell(FieldID, Val)),
+																		getNewAcum(Acum, Op, Val, NewAcum),
+																		random(1, 2, X),
+																		getNextCellPos(X, Row, Col, NewRow, NewCol),
+																		getFstAvailCellInRow(Board, NewCol, NewRow),
+																  		FieldSize1 is FieldSize -1,
+											  				 	  		makeField(Board, NewRow, NewCol, field(FieldIt, Op, Res), FieldSize1, NewAcum).
+
+
+getNextCellPos(1, Row, Col, Row, NewCol) :- NewCol is Col + 1.
+getNextCellPos(2, Row, Col, NewRow, Col) :- NewRow is Row + 1.
+
+getCell([B | Bs], 1, Col, Cell) :- getCellInRow(B, Col, Cell).
+getCell([B | Bs], Row, Col, Cell) :- Row1 is Row - 1,
+								  	 getCell(Bs, Row1, Col, Cell).
+
+getCellInRow([C | Cs], 1, C).
+getCellInRow([C | Cs], Col, Cell) :- Col1 is Col - 1,
+							  		 getCellInRow(Cs, Col1, Cell).
+
+getNewAcum(Acum, '+', Val, NewAcum) :- NewAcum is Acum + Val.
+getNewAcum(Acum, '-', Val, NewAcum) :- min_member(Min, [Acum, Val]),
+									   max_member(Max, [Acum, Val]),
+									   NewAcum is Max - Min.
+getNewAcum(Acum, '*', Val, NewAcum) :- NewAcum is Acum * Val.
+getNewAcum(Acum, '/', Val, NewAcum) :- min_member(Min, [Acum, Val]),
+									   max_member(Max, [Acum, Val]),
+									   NewAcum is Max / Min.
+getNewAcum(Acum, '=', Val, Val).
+
+getFstAvailCell(Board, RetRow, RetCol) :- getFstAvailCell(Board, 1, RetRow, RetCol).
+
+getFstAvailCell([B | Bs], RowIt, RowIt, RetCol) :- getFstAvailCellInRow(B, 1, RetCol).
+getFstAvailCell([B | Bs], RowIt, RetRow, RetCol) :- RowIt1 is RowIt + 1,
+													getFstAvailCell(Bs, RowIt1, RetRow, RetCol).
+
+getFstAvailCellInRow([], _, _) :- fail.
+getFstAvailCellInRow([cell(FID, _) | Rs], ColIt, ColIt) :- var(FID).
+getFstAvailCellInRow([R | Rs], ColIt, RetCol) :- ColIt1 is ColIt + 1,
+												 getFstAvailCellInRow(Rs, ColIt1, RetCol).
 
 
 
@@ -235,6 +320,7 @@ printHorizMidBorder([R1 | R1s], [R2 | R2s]) :- cell(FieldID1, _) = R1,
 
 printHorizMidBorder([_R1 | R1s], [_R2 | R2s]) :- write('════'), printHorizMidBorder(R1s, R2s).
 
+printNumber(Number) :- var(Number), write('   ').
 printNumber(Number) :- Number > 99, write(Number).
 printNumber(Number) :- Number > 9, write(' '), write(Number).
 printNumber(Number) :- write(' '), write(Number), write(' ').
