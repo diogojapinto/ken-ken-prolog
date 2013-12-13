@@ -31,8 +31,8 @@ testFields2([field(1, +, 6)]).
 cell(_FieldID, _Value).
 field(_FieldID, _Op, _FinalValue).
 
-solveBoard :- testBoard2(Board),
-			  testFields2(Fields),
+solveBoard :- testBoard(Board),
+			  testFields(Fields),
 			  length(Board, Size),
 			  imposeDomainConstrain(Board, Size),
 			  imposeRowConstrain(Board),
@@ -52,7 +52,11 @@ createBoard(Size) :- length(Board, Size),
 			   		 imposeColumnConstrain(Board),
 			   		 generateRandomVals(Board, Size),
 			   		 generateFields(Board, Fields),
-			   		 printBoard(Board).
+			   		 write(Fields), nl,
+			   		 printBoard(Board),
+			  		 write('\n\n'),
+			 		 printFieldTable(Board, Fields). 
+
 
 
 /*********************************************************************************************
@@ -67,7 +71,7 @@ initBoard(Size, [B | Bs]) :- length(B, Size),
 							 initBoard(Size, Bs).
 
 initBoardRow([]).
-initBoardRow([cell(_FieldID, Val) | Rs]) :- initBoardRow(Rs).
+initBoardRow([cell(_FieldID, _Val) | Rs]) :- initBoardRow(Rs).
 
 generateRandomVals(Board, Size) :- getValsList(Board, L), 
 								   Sqrt is Size * Size,
@@ -79,7 +83,7 @@ generateRandomVals(Board, Size) :- getValsList(Board, L),
 genBoard(L) :- labeling([], L), size(X), X1 is X - 1, asserta(size(X1)), X1 = 0.
 
 not(X) :- X, !, fail.
-not(X).
+not(_X).
 
 generateFields(Board, Fields) :- generateFields(Board, Fields, 1).
 
@@ -94,33 +98,37 @@ isBoardFilled([]).
 isBoardFilled([B | Bs]) :- isBoardFilledIterRow(B),
 						   isBoardFilled(Bs).
 
+isBoardFilledIterRow([]).
 isBoardFilledIterRow([cell(FID, _) | Rs]) :- nonvar(FID),
 											 isBoardFilledIterRow(Rs).
 
-iterBoard(Board, F, FieldIt) :- field(FieldIt, Res) = F,
+iterBoard(Board, F, FieldIt) :- field(FieldIt, _Op, _Res) = F,
 								random(1, 5, OpIt),
 								length(Board, BoardSize),
-								initField(OpIt, F, FieldIt, BoardSize, FieldSize),
+								initField(OpIt, F, BoardSize, FieldIt, FieldSize),
 								getFstAvailCell(Board, Row, Col),
-								getCell(Board, Row, Col, cell(_FieldID, Val)),
+								getCell(Board, Row, Col, cell(FieldIt, Val)),
 								random(1, 2, X),
 								getNextCellPos(X, Row, Col, NewRow, NewCol),
-								makeField(Board, Row, Col, F, FieldSize, Val).
+								FieldSize1 is FieldSize - 1,
+								makeField(Board, NewRow, NewCol, F, FieldSize1, Val).
 
-initField(1, field(FieldIt, '+'), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
-initField(2, field(FieldIt, '-'), BoardSize, FieldIt, 2).
-initField(3, field(FieldIt, '*'), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
-initField(4, field(FieldIt, '/'), BoardSize, FieldIt, 2).
-initField(5, field(FieldIt, '='), BoardSize, FieldIt, 1).
+initField(1, field(FieldIt, '+', _Res), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
+initField(2, field(FieldIt, '-', _Res), _BoardSize, FieldIt, 2).
+initField(3, field(FieldIt, '*', _Res), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
+initField(4, field(FieldIt, '/', _Res), _BoardSize, FieldIt, 2).
+initField(5, field(FieldIt, '=', _Res), _BoardSize, FieldIt, 1).
 
-makeField(Board, Row, Col, 1, field(FieldIt, Op, NewAcum), FieldSize, Acum) :- getCell(Board, Row, Col, cell(FieldID, Val)),
-																			   getNewAcum(Acum, Op, Val, NewAcum).
+makeField(_Board, _Row, _Col, field(_FieldIt, _Op, Acum), 0, Acum).
+makeField(Board, Row, Col, field(_FieldIt, Op, NewAcum), 1, Acum) :- getCell(Board, Row, Col, cell(_FieldID, Val)),
+																	 getNewAcum(Acum, Op, Val, NewAcum).
 																		   
-makeField(Board, Row, Col, field(FieldIt, Op, Res), FieldSize, Acum) :- getCell(Board, Row, Col, cell(FieldID, Val)),
+makeField(Board, Row, Col, field(FieldIt, Op, Res), FieldSize, Acum) :- getCell(Board, Row, Col, cell(_FieldID, Val)),
 																		getNewAcum(Acum, Op, Val, NewAcum),
 																		random(1, 2, X),
 																		getNextCellPos(X, Row, Col, NewRow, NewCol),
-																		getFstAvailCellInRow(Board, NewCol, NewRow),
+																		getCell(Board, NewRow, NewCol, cell(FID, _)),
+																		FID = FieldIt,	%se falhar, backtracking para new random
 																  		FieldSize1 is FieldSize -1,
 											  				 	  		makeField(Board, NewRow, NewCol, field(FieldIt, Op, Res), FieldSize1, NewAcum).
 
@@ -128,12 +136,12 @@ makeField(Board, Row, Col, field(FieldIt, Op, Res), FieldSize, Acum) :- getCell(
 getNextCellPos(1, Row, Col, Row, NewCol) :- NewCol is Col + 1.
 getNextCellPos(2, Row, Col, NewRow, Col) :- NewRow is Row + 1.
 
-getCell([B | Bs], 1, Col, Cell) :- getCellInRow(B, Col, Cell).
-getCell([B | Bs], Row, Col, Cell) :- Row1 is Row - 1,
+getCell([B | _Bs], 1, Col, Cell) :- getCellInRow(B, Col, Cell).
+getCell([_B | Bs], Row, Col, Cell) :- Row1 is Row - 1,
 								  	 getCell(Bs, Row1, Col, Cell).
 
-getCellInRow([C | Cs], 1, C).
-getCellInRow([C | Cs], Col, Cell) :- Col1 is Col - 1,
+getCellInRow([C | _Cs], 1, C).
+getCellInRow([_C | Cs], Col, Cell) :- Col1 is Col - 1,
 							  		 getCellInRow(Cs, Col1, Cell).
 
 getNewAcum(Acum, '+', Val, NewAcum) :- NewAcum is Acum + Val.
@@ -144,17 +152,17 @@ getNewAcum(Acum, '*', Val, NewAcum) :- NewAcum is Acum * Val.
 getNewAcum(Acum, '/', Val, NewAcum) :- min_member(Min, [Acum, Val]),
 									   max_member(Max, [Acum, Val]),
 									   NewAcum is Max / Min.
-getNewAcum(Acum, '=', Val, Val).
+getNewAcum(_Acum, '=', Val, Val).
 
 getFstAvailCell(Board, RetRow, RetCol) :- getFstAvailCell(Board, 1, RetRow, RetCol).
 
-getFstAvailCell([B | Bs], RowIt, RowIt, RetCol) :- getFstAvailCellInRow(B, 1, RetCol).
-getFstAvailCell([B | Bs], RowIt, RetRow, RetCol) :- RowIt1 is RowIt + 1,
+getFstAvailCell([B | _Bs], RowIt, RowIt, RetCol) :- getFstAvailCellInRow(B, 1, RetCol).
+getFstAvailCell([_B | Bs], RowIt, RetRow, RetCol) :- RowIt1 is RowIt + 1,
 													getFstAvailCell(Bs, RowIt1, RetRow, RetCol).
 
 getFstAvailCellInRow([], _, _) :- fail.
-getFstAvailCellInRow([cell(FID, _) | Rs], ColIt, ColIt) :- var(FID).
-getFstAvailCellInRow([R | Rs], ColIt, RetCol) :- ColIt1 is ColIt + 1,
+getFstAvailCellInRow([cell(FID, _) | _Rs], ColIt, ColIt) :- var(FID).
+getFstAvailCellInRow([_R | Rs], ColIt, RetCol) :- ColIt1 is ColIt + 1,
 												 getFstAvailCellInRow(Rs, ColIt1, RetCol).
 
 
@@ -231,14 +239,14 @@ applyOpConstrain(L, '/', Res) :- L = [_, _],
 								 minimum(Min, L),
 								 Res #= Max / Min.
 
+applyOpConstrain([L], '=', Res) :- L #= Res.
+
 applyOpConstrain([L | Ls], '*', Res) :- applyOpConstrain(Ls, '*', L, Res).
 
 applyOpConstrain([], '*', Acum, Res) :- Acum #= Res.
 
 applyOpConstrain([L | Ls], '*', Acum, Res) :- Acum1 #= L * Acum,
 											  applyOpConstrain(Ls, '*', Acum1, Res).
-
-applyOpConstrain([L], '=', Res) :- L #= Res.
 
 
 /*********************************************************************************************
@@ -330,14 +338,14 @@ printFieldTable(Board, [F | Fs]) :- RowIt = 1, printFieldTableAux(Board, F, RowI
 
 
 printFieldTableAux([], _, _).
-printFieldTableAux([B | Bs], F, RowIt) :- ColIt = 1, findFieldInCell(B, F, ColIt, Col), field(FID, Op, Val) = F, 
+printFieldTableAux([B | _Bs], F, RowIt) :- ColIt = 1, findFieldInCell(B, F, ColIt, Col), field(FID, Op, Val) = F, 
 										  printField(FID, Op, Val, RowIt, Col).
 
-printFieldTableAux([B | Bs], F, RowIt) :- RowIt1 is RowIt + 1, printFieldTableAux(Bs, F, RowIt1).
+printFieldTableAux([_B | Bs], F, RowIt) :- RowIt1 is RowIt + 1, printFieldTableAux(Bs, F, RowIt1).
 
 findFieldInCell([], _, _, _) :- fail.
-findFieldInCell([cell(FID, _) | Bs], field(FID, _, _), ColIt, ColIt).
-findFieldInCell([B | Bs], F, ColIt, Col) :- ColIt1 is ColIt + 1, findFieldInCell(Bs, F, ColIt1, Col).
+findFieldInCell([cell(FID, _) | _Bs], field(FID, _, _), ColIt, ColIt).
+findFieldInCell([_B | Bs], F, ColIt, Col) :- ColIt1 is ColIt + 1, findFieldInCell(Bs, F, ColIt1, Col).
 
 printField(FID, Op, Val, Row, Col) :- write('Field: '), write(FID), write(' '), 
 									  write('Operation: '), write(Op), write(' '),
