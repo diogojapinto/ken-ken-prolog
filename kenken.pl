@@ -45,6 +45,17 @@ solveBoard :- testBoard(Board),
 			  write('\n\n'),
 			  printFieldTable(Board, Fields). 
 
+solveBoard(Board, Fields) :- length(Board, Size),
+			  imposeDomainConstrain(Board, Size),
+			  imposeRowConstrain(Board),
+			  imposeColumnConstrain(Board),
+			  imposeFieldConstrain(Board, Fields),
+			  getValsList(Board, List),
+			  labeling([], List),
+			  printBoard(Board),
+			  write('\n\n'),
+			  printFieldTable(Board, Fields). 
+
 
 createBoard(Size) :- length(Board, Size),
 					 now(Now),
@@ -55,10 +66,13 @@ createBoard(Size) :- length(Board, Size),
 			   		 imposeColumnConstrain(Board),
 			   		 generateRandomVals(Board, Size),
 			   		 generateFields(Board, Fields),
-			   		 write(Board), nl,
-			   		 printBoard(Board),
+			   		 removeBoardFilling(Board, EmptyBoard),
+			   		 printBoard(EmptyBoard),
 			  		 write('\n\n'),
-			 		 printFieldTable(Board, Fields). 
+			 		 printFieldTable(EmptyBoard, Fields),
+			 		 write('\nPress Enter to solve the board\n'),
+			 		 get_char(_),
+			 		 solveBoard(EmptyBoard, Fields).
 
 
 
@@ -67,6 +81,14 @@ createBoard(Size) :- length(Board, Size),
  * Generations
  *
  *********************************************************************************************/
+
+
+removeBoardFilling([], []).
+removeBoardFilling([B | Bs], [EB | EBs]) :- removeBoardFillingInRow(B, EB),
+											removeBoardFilling(Bs, EBs).
+
+removeBoardFillingInRow([], []).
+removeBoardFillingInRow([cell(FID, _Val) | Rs], [cell(FID, _) | ERs]) :- removeBoardFillingInRow(Rs, ERs).
 
 initBoard(_Size, []).
 initBoard(Size, [B | Bs]) :- length(B, Size),
@@ -115,7 +137,6 @@ iterBoard(Board, F, FieldIt) :- field(FieldIt, _Op, _Res) = F,
 								random(1, 3, X),
 								getNextCellPos(X, Row, Col, NewRow, NewCol),
 								FieldSize1 is FieldSize - 1,
-								%trace, % getFstAvailCell checked
 								makeField(Board, NewRow, NewCol, F, FieldSize1, Val).
 
 initField(1, field(FieldIt, '+', _Res), BoardSize, FieldIt, Size) :- MaxSize = BoardSize + 1, random(2, MaxSize, Size).
@@ -156,7 +177,9 @@ getNewAcum(Acum, '-', Val, NewAcum) :- min_member(Min, [Acum, Val]),
 getNewAcum(Acum, '*', Val, NewAcum) :- NewAcum is Acum * Val.
 getNewAcum(Acum, '/', Val, NewAcum) :- min_member(Min, [Acum, Val]),
 									   max_member(Max, [Acum, Val]),
-									   NewAcum is Max / Min.
+									   X is Max mod Min,
+									   X = 0,
+									   NewAcum is Max // Min.
 getNewAcum(_Acum, '=', Val, Val).
 
 getFstAvailCell(Board, RetRow, RetCol) :- getFstAvailCell(Board, 1, RetRow, RetCol).
