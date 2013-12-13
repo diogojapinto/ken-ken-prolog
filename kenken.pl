@@ -77,7 +77,7 @@ initBoardRow([]).
 initBoardRow([cell(_FieldID, _Val) | Rs]) :- initBoardRow(Rs).
 
 generateRandomVals(Board, Size) :- getValsList(Board, L), 
-								   Sqrt is Size * Size,
+								   Sqrt is (Size * Size) + 1,
 								   random(Size, Sqrt, X),
 								   retractall(size(_)),
 								   asserta(size(X)),
@@ -90,7 +90,7 @@ not(_X).
 
 generateFields(Board, Fields) :- generateFields(Board, Fields, 1).
 
-generateFields(Board, [F | Fs], FieldIt) :- not(isBoardFilled(Board)),
+generateFields(Board, [F | Fs], FieldIt) :- not(isBoardFilled(Board)), !,
 								 			iterBoard(Board, F, FieldIt),
 								 			FieldIt1 is FieldIt + 1,
 								 			generateFields(Board, Fs, FieldIt1).
@@ -106,30 +106,31 @@ isBoardFilledIterRow([cell(FID, _) | Rs]) :- nonvar(FID),
 											 isBoardFilledIterRow(Rs).
 
 iterBoard(Board, F, FieldIt) :- field(FieldIt, _Op, _Res) = F,
-								random(1, 5, OpIt),
+								repeat,
+								random(1, 6, OpIt),
 								length(Board, BoardSize),
 								initField(OpIt, F, BoardSize, FieldIt, FieldSize),
 								getFstAvailCell(Board, Row, Col),
 								getCell(Board, Row, Col, cell(FieldIt, Val)),
-								random(1, 2, X),
+								random(1, 3, X),
 								getNextCellPos(X, Row, Col, NewRow, NewCol),
 								FieldSize1 is FieldSize - 1,
-								%trace,
+								%trace, % getFstAvailCell checked
 								makeField(Board, NewRow, NewCol, F, FieldSize1, Val).
 
-initField(1, field(FieldIt, '+', _Res), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
+initField(1, field(FieldIt, '+', _Res), BoardSize, FieldIt, Size) :- MaxSize = BoardSize + 1, random(2, MaxSize, Size).
 initField(2, field(FieldIt, '-', _Res), _BoardSize, FieldIt, 2).
-initField(3, field(FieldIt, '*', _Res), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
+initField(3, field(FieldIt, '*', _Res), BoardSize, FieldIt, Size) :- MaxSize = BoardSize + 1, random(2, MaxSize, Size).
 initField(4, field(FieldIt, '/', _Res), _BoardSize, FieldIt, 2).
 initField(5, field(FieldIt, '=', _Res), _BoardSize, FieldIt, 1).
 
-makeField(_Board, _Row, _Col, field(_FieldIt, _Op, Acum), 0, Acum).
+makeField(_Board, _Row, _Col, field(_FieldIt, _Op, Acum), 0, Acum) :- !.
 makeField(Board, Row, Col, field(FieldIt, Op, NewAcum), 1, Acum) :- getCell(Board, Row, Col, cell(FieldIt, Val)),
-																	getNewAcum(Acum, Op, Val, NewAcum).
+																	getNewAcum(Acum, Op, Val, NewAcum), !.
 																		   
 makeField(Board, Row, Col, field(FieldIt, Op, Res), FieldSize, Acum) :- getCell(Board, Row, Col, cell(_FieldID, Val)),
 																		getNewAcum(Acum, Op, Val, NewAcum),
-																		random(1, 2, X),
+																		random(1, 3, X),
 																		getNextCellPos(X, Row, Col, NewRow, NewCol),
 																		getCell(Board, NewRow, NewCol, cell(FID, _)),
 																		FID = FieldIt,	%se falhar, backtracking para new random
