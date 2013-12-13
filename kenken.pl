@@ -2,6 +2,7 @@
 :- use_module(library(lists)).
 :- use_module(library(random)).
 :- use_module(library(between)).
+:- use_module(library(system)).
 
 testBoard([[cell(1, _), cell(2, _), cell(2, _), cell(3, _)],
 		   [cell(1, _), cell(4, _), cell(5, _), cell(3, _)],
@@ -46,13 +47,15 @@ solveBoard :- testBoard(Board),
 
 
 createBoard(Size) :- length(Board, Size),
+					 now(Now),
+					 setrand(Now),
 			   		 initBoard(Size, Board),
 			   		 imposeDomainConstrain(Board, Size),
 			   		 imposeRowConstrain(Board),
 			   		 imposeColumnConstrain(Board),
 			   		 generateRandomVals(Board, Size),
 			   		 generateFields(Board, Fields),
-			   		 write(Fields), nl,
+			   		 write(Board), nl,
 			   		 printBoard(Board),
 			  		 write('\n\n'),
 			 		 printFieldTable(Board, Fields). 
@@ -111,6 +114,7 @@ iterBoard(Board, F, FieldIt) :- field(FieldIt, _Op, _Res) = F,
 								random(1, 2, X),
 								getNextCellPos(X, Row, Col, NewRow, NewCol),
 								FieldSize1 is FieldSize - 1,
+								%trace,
 								makeField(Board, NewRow, NewCol, F, FieldSize1, Val).
 
 initField(1, field(FieldIt, '+', _Res), BoardSize, FieldIt, Size) :- random(2, BoardSize, Size).
@@ -120,8 +124,8 @@ initField(4, field(FieldIt, '/', _Res), _BoardSize, FieldIt, 2).
 initField(5, field(FieldIt, '=', _Res), _BoardSize, FieldIt, 1).
 
 makeField(_Board, _Row, _Col, field(_FieldIt, _Op, Acum), 0, Acum).
-makeField(Board, Row, Col, field(_FieldIt, Op, NewAcum), 1, Acum) :- getCell(Board, Row, Col, cell(_FieldID, Val)),
-																	 getNewAcum(Acum, Op, Val, NewAcum).
+makeField(Board, Row, Col, field(FieldIt, Op, NewAcum), 1, Acum) :- getCell(Board, Row, Col, cell(FieldIt, Val)),
+																	getNewAcum(Acum, Op, Val, NewAcum).
 																		   
 makeField(Board, Row, Col, field(FieldIt, Op, Res), FieldSize, Acum) :- getCell(Board, Row, Col, cell(_FieldID, Val)),
 																		getNewAcum(Acum, Op, Val, NewAcum),
@@ -156,6 +160,7 @@ getNewAcum(_Acum, '=', Val, Val).
 
 getFstAvailCell(Board, RetRow, RetCol) :- getFstAvailCell(Board, 1, RetRow, RetCol).
 
+getFstAvailCell([], _RowIt, _RetRow, _RetCol) :- fail.
 getFstAvailCell([B | _Bs], RowIt, RowIt, RetCol) :- getFstAvailCellInRow(B, 1, RetCol).
 getFstAvailCell([_B | Bs], RowIt, RetRow, RetCol) :- RowIt1 is RowIt + 1,
 													getFstAvailCell(Bs, RowIt1, RetRow, RetCol).
@@ -163,7 +168,7 @@ getFstAvailCell([_B | Bs], RowIt, RetRow, RetCol) :- RowIt1 is RowIt + 1,
 getFstAvailCellInRow([], _, _) :- fail.
 getFstAvailCellInRow([cell(FID, _) | _Rs], ColIt, ColIt) :- var(FID).
 getFstAvailCellInRow([_R | Rs], ColIt, RetCol) :- ColIt1 is ColIt + 1,
-												 getFstAvailCellInRow(Rs, ColIt1, RetCol).
+												  getFstAvailCellInRow(Rs, ColIt1, RetCol).
 
 
 
