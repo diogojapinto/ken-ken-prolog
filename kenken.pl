@@ -45,19 +45,25 @@ solveBoard :- testBoard(Board),
 			  write('\n\n'),
 			  printFieldTable(Board, Fields). 
 
-solveBoard(Board, Fields) :- length(Board, Size),
-			  imposeDomainConstrain(Board, Size),
-			  imposeRowConstrain(Board),
-			  imposeColumnConstrain(Board),
-			  imposeFieldConstrain(Board, Fields),
-			  getValsList(Board, List),
-			  labeling([], List),
-			  printBoard(Board),
-			  write('\n\n'),
-			  printFieldTable(Board, Fields). 
+solveBoard(Board, Fields) :- statistics(runtime, [T0, _]),
+							 length(Board, Size),
+			  				 imposeDomainConstrain(Board, Size),
+			  				 imposeRowConstrain(Board),
+			  				 imposeColumnConstrain(Board),
+			 				 imposeFieldConstrain(Board, Fields),
+			 				 getValsList(Board, List),
+			 				 labeling([], List),
+			 				 statistics(runtime, [T1, _]),
+			 				 printBoard(Board),
+			 				 write('\n\n'),
+			 				 printFieldTable(Board, Fields),
+			 				 T is T1 - T0,
+			 				 format('~n~nSolving took ~3d sec.~n', [T]),
+			 				 fd_statistics. 
 
 
-createBoard(Size) :- length(Board, Size),
+createBoard(Size) :- statistics(runtime, [T0, _]),
+					 length(Board, Size),
 					 now(Now),
 					 setrand(Now),
 			   		 initBoard(Size, Board),
@@ -66,13 +72,14 @@ createBoard(Size) :- length(Board, Size),
 			   		 imposeColumnConstrain(Board),
 			   		 generateRandomVals(Board, Size),
 			   		 generateFields(Board, Fields),
+			 		 statistics(runtime, [T1, _]),
 			   		 removeBoardFilling(Board, EmptyBoard),
 			   		 printBoard(EmptyBoard),
 			  		 write('\n\n'),
 			 		 printFieldTable(EmptyBoard, Fields),
-			 		 write('\nPress Enter to solve the board\n'),
-			 		 get_char(_),
-			 		 solveBoard(EmptyBoard, Fields).
+			 		 solveBoard(EmptyBoard, Fields),
+			 		 T is T1 - T0,
+			 		 format('Creating took ~3d sec.~n', [T]).
 
 
 
@@ -98,23 +105,39 @@ initBoard(Size, [B | Bs]) :- length(B, Size),
 initBoardRow([]).
 initBoardRow([cell(_FieldID, _Val) | Rs]) :- initBoardRow(Rs).
 
-generateRandomVals(Board, Size) :- getValsList(Board, L), 
-								   Sqrt is (Size * Size) + 1,
-								   random(Size, Sqrt, X),
-								   retractall(size(_)),
-								   asserta(size(X)),
-								   genBoard(L).
+generateRandomVals(Board, Size) :- getValsList(Board, L),
+								   random(1, Size, X),
+								   retractall(val(X)),
+								   random(1, 3, Dir),
+								   asserta(val(X)),
+								   genBoard(Dir, L).
 
-genBoard(L) :- labeling([], L), size(X), X1 is X - 1, asserta(size(X1)), X1 = 0.
+generateRandomVals(Board, _Size) :- getValsList(Board, L),
+								    labeling([bisect], L).
+
+genBoard(1, L) :- !, labeling([bisect, up], L),
+			   val(X), 
+			   retract(val(X)), 
+			   X1 is X - 1, 
+			   asserta(val(X1)),
+			   X1 = 0.
+
+genBoard(2, L) :- !, labeling([bisect, down], L),
+			   val(X), 
+			   retract(val(X)), 
+			   X1 is X - 1, 
+			   asserta(val(X1)),
+			   X1 = 0.
 
 not(X) :- X, !, fail.
 not(_X).
 
 generateFields(Board, Fields) :- generateFields(Board, Fields, 1).
 
-generateFields(Board, [F | Fs], FieldIt) :- not(isBoardFilled(Board)), !,
+generateFields(Board, [F | Fs], FieldIt) :- not(isBoardFilled(Board)),
 								 			iterBoard(Board, F, FieldIt),
 								 			FieldIt1 is FieldIt + 1,
+								 			!,
 								 			generateFields(Board, Fs, FieldIt1).
 
 generateFields(_Board, [], _FieldIt).
@@ -131,36 +154,51 @@ iterBoard(Board, F, FieldIt) :- field(FieldIt, _Op, _Res) = F,
 								repeat,
 								random(1, 6, OpIt),
 								length(Board, BoardSize),
-								initField(OpIt, F, BoardSize, FieldIt, FieldSize),
+								initField(OpIt, F, BoardSize, FieldSize),
 								getFstAvailCell(Board, Row, Col),
 								getCell(Board, Row, Col, cell(FieldIt, Val)),
-								random(1, 3, X),
-								getNextCellPos(X, Row, Col, NewRow, NewCol),
 								FieldSize1 is FieldSize - 1,
-								makeField(Board, NewRow, NewCol, F, FieldSize1, Val).
+								prepMakeField(Board, Row, Col, F, FieldSize1, Val).
 
-initField(1, field(FieldIt, '+', _Res), BoardSize, FieldIt, Size) :- MaxSize = BoardSize + 1, random(2, MaxSize, Size).
-initField(2, field(FieldIt, '-', _Res), _BoardSize, FieldIt, 2).
-initField(3, field(FieldIt, '*', _Res), BoardSize, FieldIt, Size) :- MaxSize = BoardSize + 1, random(2, MaxSize, Size).
-initField(4, field(FieldIt, '/', _Res), _BoardSize, FieldIt, 2).
-initField(5, field(FieldIt, '=', _Res), _BoardSize, FieldIt, 1).
+prepMakeField(Board, Row, Col, F, FieldSize, Val) :- FieldSize > 0,
+													 getNextCellPos(Board, Row, Col, NewRow, NewCol),
+													 !,
+													 makeField(Board, NewRow, NewCol, F, FieldSize, Val).
 
-makeField(_Board, _Row, _Col, field(_FieldIt, _Op, Acum), 0, Acum) :- !.
+prepMakeField(_Board, _Row, _Col, field(_, '=', Val), _FieldSize1, Val).
+
+initField(1, field(_FieldIt, '+', _Res), BoardSize, Size) :- random(2, BoardSize, Size).
+initField(2, field(_FieldIt, '-', _Res), _BoardSize, 2).
+initField(3, field(_FieldIt, '*', _Res), BoardSize, Size) :- random(2, BoardSize, Size).
+initField(4, field(_FieldIt, '/', _Res), _BoardSize, 2).
+initField(5, field(_FieldIt, '=', _Res), _BoardSize, 1).
+
 makeField(Board, Row, Col, field(FieldIt, Op, NewAcum), 1, Acum) :- getCell(Board, Row, Col, cell(FieldIt, Val)),
 																	getNewAcum(Acum, Op, Val, NewAcum), !.
 																		   
-makeField(Board, Row, Col, field(FieldIt, Op, Res), FieldSize, Acum) :- getCell(Board, Row, Col, cell(_FieldID, Val)),
+makeField(Board, Row, Col, field(FieldIt, Op, Res), FieldSize, Acum) :- getCell(Board, Row, Col, cell(FieldIt, Val)),
 																		getNewAcum(Acum, Op, Val, NewAcum),
-																		random(1, 3, X),
-																		getNextCellPos(X, Row, Col, NewRow, NewCol),
+																		getNextCellPos(Board, Row, Col, NewRow, NewCol),
 																		getCell(Board, NewRow, NewCol, cell(FID, _)),
 																		FID = FieldIt,	%se falhar, backtracking para new random
 																  		FieldSize1 is FieldSize -1,
 											  				 	  		makeField(Board, NewRow, NewCol, field(FieldIt, Op, Res), FieldSize1, NewAcum).
 
+getNextCellPos(Board, Row, Col, NewRow, NewCol) :- getNextCellPos(Board, Row, Col, NewRow, NewCol, 9).
+getNextCellPos(_Board, _Row, _Col, _NewRow, _NewCol, 0) :- !, fail.
+getNextCellPos(Board, Row, Col, NewRow, NewCol, _It) :- random(1, 4, X),
+													   isCellAvailable(Board, Row, Col, X, NewRow, NewCol).
+getNextCellPos(Board, Row, Col, NewRow, NewCol, It) :- NewIt is It - 1,
+													   getNextCellPos(Board, Row, Col, NewRow, NewCol, NewIt).
 
-getNextCellPos(1, Row, Col, Row, NewCol) :- NewCol is Col + 1.
-getNextCellPos(2, Row, Col, NewRow, Col) :- NewRow is Row + 1.
+isCellAvailable(Board, Row, Col, X, NewRow, NewCol) :- getTestRow(X, Row, Col, NewRow, NewCol),
+													   getCell(Board, NewRow, NewCol, cell(FID, _)),
+													   var(FID).
+
+getTestRow(1, Row, Col, Row, NewCol) :- NewCol is Col + 1.
+getTestRow(2, Row, Col, NewRow, Col) :- NewRow is Row + 1.
+getTestRow(3, Row, Col, Row, NewCol) :- NewCol is Col - 1, 
+										NewCol > 0.
 
 getCell([B | _Bs], 1, Col, Cell) :- getCellInRow(B, Col, Cell).
 getCell([_B | Bs], Row, Col, Cell) :- Row1 is Row - 1,
