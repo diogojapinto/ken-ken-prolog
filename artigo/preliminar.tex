@@ -15,7 +15,6 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 \documentclass[runningheads,a4paper]{llncs}
 \usepackage[utf8]{inputenc}
 \usepackage{amssymb}
@@ -91,6 +90,30 @@ A implementação de um programa capaz de resolver puzzles numéricos do tipico 
 
 
 Para a resolução deste problema foram utilizados métodos de programação com restricões em prolog, impondo restrições nos numeros que podem ser utilizados, verificando que não existem números repetidos por linha e coluna, e verificando que as operações matemáticas indicadas se evidenciam.
+
+\newpage
+
+\section{Estruturas de dados}
+O puzzle que modela um dado problema é abstracionado sobre duas estruturas de dados elementares.
+Os valores do tabuleiro são guardados numa matriz de comprimento e largura iguais. Esta matriz é preenchida
+com elementos do tipo \begin{verbatim} cell(FieldID, Value) \end{verbatim}, onde o primeiro campo guarda uma
+referencia para a segunda estrutura de dados utilizada, que é uma lista de ítens 
+\begin{verbatim} field(FieldID, Operation, Result) \end{verbatim}. Aqui são mapeados a operação e o resultado a que corresponde uma determinada região no puzzle. Tal traduz-se numa estrutura como a seguinte:
+\begin{verbatim}
+testBoard([[cell(1, _), cell(2, _), cell(2, _), cell(3, _)],
+	[cell(1, _), cell(4, _), cell(5, _), cell(3, _)],
+	[cell(6, _), cell(4, _), cell(5, _), cell(5, _)],
+	[cell(6, _), cell(7, _), cell(7, _), cell(8, _)]]).
+	
+testFields([field(1, '-', 1),
+	field(2, '/', 2),
+	field(3, '-', 3),
+	field(4, '-', 2),
+	field(5, '*', 24),
+	field(6, '-', 1),
+	field(7, '+', 7),
+	field(8, '=', 2)]).
+\end{verbatim}
 
 \section{Variáveis de Decisão}
 Para a resolução deste problema são necessárias quatro variáveis de decisão, primeiro o dominio dos números a serem utilizados no tabuleiro. Só podem ser utilizados no tabuleiro números de valor igual ou inferior ao tamanho do tabuleiro, por exemplo, se o tabuleiro for 4x4, só poderão ser utilizados números de um a quatro.
@@ -182,7 +205,9 @@ printHorizMidBorder([_R1 | R1s], [_R2 | R2s]) :-
 \FloatBarrier
 
 \section{Resultados}
-Após a realização de vários testes, com geração e resolução de tabuleiros KenKen, o programa demorou sempre menos de 1 segundo a gerar e resolver o tabuleiro. Foi constatado para além disso que para tabuleiros com lado maior ou igual que dez, o tempo de resolução aumenta consideralvelmente, devido a complexidade do puzzle.
+Após a realização de vários testes, com geração e resolução de tabuleiros KenKen, o programa demorou sempre menos de 1 segundo a gerar e resolver o tabuleiro. Foi constatado para além disso que para tabuleiros com lado maior ou igual que dez verificam-se casos em que a obtenção de solução não ocorrera em tempo útil, crescendo exponencialmente a
+probabilidade de tal acontecer.
+
 \begin{figure}
 \centering
 \includegraphics[scale=0.8]{table}
@@ -213,7 +238,7 @@ Após análise dos resultados obtidos e diferentes testes, podemos concluir que 
 language=Prolog,
 numbers=left,
 frame=single,
-breaklines=true,
+breaklines=true
 }
 
 \lstinputlisting{kenken_art.pl}
