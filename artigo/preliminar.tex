@@ -22,6 +22,7 @@
 \setcounter{tocdepth}{3}
 \usepackage{graphicx}
 \usepackage{listings}
+\usepackage{placeins}
 
 \usepackage{url}
 \urldef{\mailsa}\path|{alfred.hofmann, ursula.barth, ingrid.haas, frank.holzwarth,|
@@ -91,14 +92,13 @@ A implementação de um programa capaz de resolver puzzles numéricos do tipico 
 
 Para a resolução deste problema foram utilizados métodos de programação com restricões em prolog, impondo restrições nos numeros que podem ser utilizados, verificando que não existem números repetidos por linha e coluna, e verificando que as operações matemáticas indicadas se evidenciam.
 
-\section{Ficheiros de Dados}
-
 \section{Variáveis de Decisão}
 Para a resolução deste problema são necessárias quatro variáveis de decisão, primeiro o dominio dos números a serem utilizados no tabuleiro. Só podem ser utilizados no tabuleiro números de valor igual ou inferior ao tamanho do tabuleiro, por exemplo, se o tabuleiro for 4x4, só poderão ser utilizados números de um a quatro.
 A segunda e terceira restrição são similares, deve ser verificado que não existem números repetidos, por coluna e linha.
 A última restrição deve verificar que as operações matemáticas pedidas e respectivo resultado se verificam.
 Fazendo a verificação destas quatro restrições estaremos a reduzir eficazmente o dominio de pesquisa de possiveis soluções.
 
+\newpage
 \section{Restrições}
 A implementação da restrição do dominio, é feita criando uma lista com as variáveis de dominio que irão ser preenchidas, e impondo a restrição do valor máximo a ser utilizado (\emph{SupLim}).
 \noindent
@@ -125,9 +125,7 @@ imposeFieldConstrain(Board, [field(FID, Op, Res) | Fs]) :-
 	imposeFieldConstrain(Board, Fs).
 \end{verbatim}
 
-\section{Função de avaliação}
-Penso que nao se aplica no nosso trabalho
-
+\newpage
 \section{Estratégia de Pesquisa}
 Na resolução de um tabuleiro, após a imposição das restrições é executado o \emph{labelling} com os valores por defeito, para obter a melhor solução possivel para o tabuleiro apresentado.
 
@@ -176,14 +174,26 @@ printHorizMidBorder([_R1 | R1s], [_R2 | R2s]) :-
 
 \begin{figure}
 \centering
-\includegraphics[height=6.2cm]{solve}
+\includegraphics[scale=0.5]{solve}
 \caption{Picture of a solved board.}
 \label{fig:example}
 \end{figure}
 
+\FloatBarrier
+
 \section{Resultados}
+Após a realização de vários testes, com geração e resolução de tabuleiros KenKen, o programa demorou sempre menos de 1 segundo a gerar e resolver o tabuleiro. Foi constatado para além disso que para tabuleiros com lado maior ou igual que dez, o tempo de resolução aumenta consideralvelmente, devido a complexidade do puzzle.
+\begin{figure}
+\centering
+\includegraphics[scale=0.8]{table}
+\caption{Results of different tests.}
+\label{fig:example}
+\end{figure}
+
+\FloatBarrier
 
 \section{Conclusões e perspectivas de desenvolvimento}
+Para terminar, é importante salientar que foi necessário a reestruturação do programa, uma vez que a variada complexidade dos puzzles levava a quebra do sistema.
 Após análise dos resultados obtidos e diferentes testes, podemos concluir que os métodos de programação com restrições se tornam mais eficazes que métodos de tentativa e erro, uma vez que limitam à priori o nível de possibilidades para a resolução do problema tornando mais eficaz a procura de uma solução válida.
 
 \section{Bibliografia}
@@ -206,6 +216,6 @@ frame=single,
 breaklines=true,
 }
 
-%\lstinputlisting{kenken.pl}
+\lstinputlisting{kenken_art.pl}
 
 \end{document}
